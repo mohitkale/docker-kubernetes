@@ -1,6 +1,6 @@
 {
   "name": "docker-kubernetes",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Generate Dockerfiles and Kubernetes manifests, debug failing containers and pods, and audit Helm charts and RBAC. Opinionated, safety-conscious workflows for Docker and Kubernetes from local builds through production clusters.",
   "author": {
     "name": "Mohit Kale",
