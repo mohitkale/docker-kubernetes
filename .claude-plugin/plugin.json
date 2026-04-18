@@ -1,0 +1,24 @@
+{
+  "name": "docker-kubernetes",
+  "version": "1.0.0",
+  "description": "Generate Dockerfiles and Kubernetes manifests, debug failing containers and pods, and audit Helm charts and RBAC. Opinionated, safety-conscious workflows for Docker and Kubernetes from local builds through production clusters.",
+  "author": {
+    "name": "Mohit Kale",
+    "email": "mr.mohit44@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "docker",
+    "kubernetes",
+    "k8s",
+    "helm",
+    "rbac",
+    "containers",
+    "devops",
+    "dockerfile",
+    "docker-compose",
+    "manifest"
+  ],
+  "homepage": "https://github.com/mohitkale/docker-kubernetes",
+  "repository": "https://github.com/mohitkale/docker-kubernetes.git"
+}
