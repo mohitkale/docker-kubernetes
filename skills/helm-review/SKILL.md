@@ -57,8 +57,8 @@ Go through each item and report findings. Mark each as `pass`, `warn`, or `fail`
 ### Tests and CI
 
 1. A `templates/tests/` directory or a `helm test` target exists.
-2. `helm lint` has no errors.
-3. `helm template` renders without errors when using `values.yaml` defaults.
+2. If `helm lint` output is present in the repo or provided by the user, review it for errors. If not, mark linting as unverified rather than claiming it passed.
+3. If `helm template` output is present in the repo or provided by the user, review it for rendering errors. If not, mark template rendering as unverified rather than claiming it passed.
 
 ## Output format
 

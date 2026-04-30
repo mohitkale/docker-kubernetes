@@ -11,7 +11,7 @@ Review RBAC definitions and flag overly broad permissions.
 
 ## Inputs
 
-`$ARGUMENTS` is an optional namespace. If empty, audit cluster-wide RBAC (ClusterRole, ClusterRoleBinding) and ask whether the user also wants to audit a specific namespace.
+`$ARGUMENTS` is an optional namespace. If empty, audit cluster-wide RBAC (ClusterRole, ClusterRoleBinding) and ask whether the user also wants to audit a specific namespace. Only run namespace-scoped Role, RoleBinding, and ServiceAccount commands when a namespace is provided or confirmed.
 
 ## Workflow
 
@@ -41,10 +41,9 @@ For each ClusterRole and Role, check `rules` for any of these red flags:
 For each risky role, find who uses it:
 
 ```bash
-kubectl get clusterrolebinding -o json | jq '.items[] | select(.roleRef.name == "<role>")'
+kubectl get clusterrolebinding -o wide
+kubectl describe clusterrolebinding <binding-name>
 ```
-
-If `jq` is not available, use `kubectl describe clusterrolebinding` and read the output.
 
 Focus on:
 - Service accounts bound to `cluster-admin` or other broad roles.
