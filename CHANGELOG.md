@@ -4,6 +4,32 @@ All notable changes to this plugin are documented here.
 
 The format is based on Keep a Changelog, and this plugin uses semantic versioning.
 
+## [1.1.0] - 2026-04-30
+
+### Added
+
+- Command `runtime-check`: read-only local capability checker for host Docker, WSL Docker, Compose, `kubectl`, Helm, local cluster tools, and Docker alternatives such as Podman and nerdctl.
+- Command `smoke-test`: explicit local smoke runner for Docker build/inspect/cleanup, Compose config, Helm lint/template, and kubectl client dry-run where tools are available.
+- Bundled `bin/runtime-check.js` with fixture mode so runtime detection can be tested without Docker Desktop, WSL, `kubectl`, Helm, or a live cluster.
+- Bundled `bin/smoke-test.js` with fixture mode for cross-platform Docker/Kubernetes smoke-test coverage.
+- Expanded offline test suite from SessionStart-only coverage to manifest parsing, frontmatter checks, hook syntax, bin script syntax, SessionStart detection, PostToolUse Docker/Compose/Kubernetes/Helm simulations, and runtime-check fixture coverage.
+
+### Changed
+
+- `doctor` now reports Docker Compose availability and gives better guidance when Docker Desktop is not allowed.
+- `cluster-audit` keeps static Helm review available even when no Kubernetes cluster can be reached.
+- `events` no longer claims a strict one-hour filter when the command only returns retained recent events.
+- `docker-debug` allows legacy `docker-compose` read-only diagnostics in addition to Compose v2.
+- `helm-review` marks `helm lint` and `helm template` as unverified unless the output is actually present.
+- `rbac-review` only runs namespace-scoped commands after a namespace is provided or confirmed.
+
+### Fixed
+
+- PostToolUse hook detection now handles Windows `.exe` invocations and Docker Compose failures.
+- `smoke-test` kubectl client dry-run no longer requires a reachable cluster API or OpenAPI endpoint.
+- `runtime-check` reports the actual kubectl `gitVersion` instead of the YAML section header.
+- `rbac-review` no longer suggests `jq`, keeping the workflow within the plugin's allowed tools.
+
 ## [1.0.1] - 2026-04-19
 
 ### Added

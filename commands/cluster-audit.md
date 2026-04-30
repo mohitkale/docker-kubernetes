@@ -1,7 +1,7 @@
 ---
-description: Run the full Docker and Kubernetes audit pass in one command. Chains doctor, rbac-review, helm-review (if Helm charts are detected), and events into a single report. Use as a pre-release or pre-handoff check to surface everything the plugin can find in one pass.
+description: Run the full Docker and Kubernetes audit pass in one command. Chains doctor, events, rbac-review, and helm-review (if Helm charts are detected) into a single report. Use as a pre-release or pre-handoff check to surface everything the plugin can find in one pass.
 argument-hint: "[namespace]"
-allowed-tools: Bash(docker version *) Bash(docker context *) Bash(docker ps *) Bash(docker info *) Bash(kubectl version *) Bash(kubectl config *) Bash(kubectl cluster-info *) Bash(kubectl get *) Bash(kubectl describe *) Bash(kubectl auth *) Read Glob
+allowed-tools: Bash(docker version *) Bash(docker context *) Bash(docker ps *) Bash(docker info *) Bash(docker system df *) Bash(docker compose *) Bash(docker-compose *) Bash(kubectl version *) Bash(kubectl config *) Bash(kubectl cluster-info *) Bash(kubectl get *) Bash(kubectl describe *) Bash(kubectl auth *) Read Glob Grep
 ---
 
 # Full Docker and Kubernetes audit
@@ -20,11 +20,11 @@ Run each step. If a step fails (no cluster reachable, no Helm chart in cwd, etc.
 
 ### Step 1: Environment check (from `doctor`)
 
-Run the same flow as `/docker-kubernetes:doctor`. Report Docker daemon, kubectl version, cluster context, non-running pods. If no cluster is reachable, skip steps 3 and 4.
+Run the same flow as `/docker-kubernetes:doctor`. Report Docker daemon, Compose availability, kubectl version, cluster context, and non-running pods. If no cluster is reachable, skip the event and RBAC steps that need the cluster, but still run the static Helm chart review if charts are present.
 
 ### Step 2: Recent events (from `events`)
 
-Run the same flow as `/docker-kubernetes:events <namespace> Warning`. Limit to the last 30 events. Collapse by object.
+Run the same flow as `/docker-kubernetes:events <namespace> Warning`. Limit the report to the latest 30 retained events. Collapse by object.
 
 ### Step 3: RBAC review (from `rbac-review`)
 
@@ -57,7 +57,7 @@ Critical (2):
 - ClusterRoleBinding cluster-admin-for-deployer grants system:masters to serviceaccount/deployer
 
 High (4):
-- 12 warning events in last hour on deploy/redis (FailedMount, Unhealthy)
+- 12 recent warning events on deploy/redis (FailedMount, Unhealthy)
 - Role "full-access" has "*" in resources and verbs in production namespace
 - Helm chart web-api has resources.limits.memory "4Gi" but requests 200Mi (10x over-provision risk)
 - Helm chart web-api does not set a PodDisruptionBudget
@@ -79,7 +79,7 @@ If nothing of concern is found, report:
 ```
 Docker and Kubernetes full audit
 ================================
-Nothing of concern found. Toolchain healthy, no broad RBAC, no warning events in the last hour, Helm charts (if any) follow standard conventions.
+Nothing of concern found. Toolchain healthy, no broad RBAC, no recent warning events, Helm charts (if any) follow standard conventions.
 ```
 
 ## Do not

@@ -1,6 +1,6 @@
 ---
-description: Check the local Docker and Kubernetes toolchain. Reports Docker daemon status, kubectl version, current cluster context, and any non-running pods in the default namespace. Use before debugging to confirm the environment is healthy.
-allowed-tools: Bash(docker version *) Bash(docker context *) Bash(docker ps *) Bash(docker info *) Bash(kubectl version *) Bash(kubectl config *) Bash(kubectl cluster-info *) Bash(kubectl get *)
+description: Check the local Docker and Kubernetes toolchain. Reports Docker daemon status, Compose availability, kubectl version, current cluster context, and any non-running pods in the default namespace. Use before debugging to confirm the environment is healthy.
+allowed-tools: Bash(docker version *) Bash(docker context *) Bash(docker ps *) Bash(docker info *) Bash(docker system df *) Bash(docker compose *) Bash(docker-compose *) Bash(kubectl version *) Bash(kubectl config *) Bash(kubectl cluster-info *) Bash(kubectl get *)
 ---
 
 # Docker and Kubernetes environment check
@@ -17,12 +17,16 @@ docker version --format '{{.Server.Version}}'
 
 If that errors with "Cannot connect to the Docker daemon", report Docker as **not running** and suggest starting Docker Desktop (macOS, Windows) or `sudo systemctl start docker` (Linux). Skip steps 2 and 3.
 
+If Docker Desktop is not allowed on the machine, suggest using an approved remote Docker context, a company-managed build runner, or another approved container runtime instead of trying to start Docker Desktop.
+
 2. Active Docker context and running containers:
 
 ```bash
 docker context show
-docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' | head -15
+docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
 ```
+
+Summarize at most the first 15 containers in the report.
 
 3. Disk and image footprint:
 
@@ -30,33 +34,44 @@ docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' | head -15
 docker system df
 ```
 
-4. kubectl installed?
+4. Docker Compose available?
+
+Try Compose v2 first, then legacy Compose v1:
 
 ```bash
-kubectl version --client --output=yaml 2>&1 | head -10
+docker compose version 2>&1
+docker-compose version 2>&1
 ```
 
-If kubectl is not on PATH, report that Kubernetes commands will not run and skip steps 5-7.
+If neither command exists, report that Compose files can still be generated but local Compose execution will not work until Compose is installed or enabled.
 
-5. Active cluster context:
+5. kubectl installed?
+
+```bash
+kubectl version --client --output=yaml 2>&1
+```
+
+If kubectl is not on PATH, report that Kubernetes commands will not run and skip steps 6-8.
+
+6. Active cluster context:
 
 ```bash
 kubectl config current-context
-kubectl cluster-info 2>&1 | head -5
+kubectl cluster-info 2>&1
 ```
 
 If `kubectl cluster-info` hangs or fails, the current context cannot reach the cluster. Note that and move on.
 
-6. Any non-running pods in the default namespace:
+7. Any non-running pods in the default namespace:
 
 ```bash
 kubectl get pods --field-selector=status.phase!=Running -o wide 2>&1
 ```
 
-7. Cluster version:
+8. Cluster version:
 
 ```bash
-kubectl version --output=yaml 2>&1 | head -20
+kubectl version --output=yaml 2>&1
 ```
 
 ## Output format
@@ -68,6 +83,7 @@ Docker and Kubernetes environment
 ---------------------------------
 Docker daemon:    running, version 27.3.1
 Docker context:   default
+Compose:          available, v2.29.7
 Containers:       3 running, 5 stopped
 Disk:             images 4.2 GB, build cache 1.8 GB
 

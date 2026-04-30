@@ -53,6 +53,8 @@ For pods with multiple containers, add `-c <container-name>`.
 kubectl get events -n <ns> --sort-by=.lastTimestamp | tail -30
 ```
 
+On Windows shells without `tail`, run the same `kubectl get events ...` command without the pipe and summarize only the latest 30 rows from the returned output.
+
 ### Step 4: rollout status (for Deployment and StatefulSet)
 
 If the issue is a Deployment that is stuck mid-rollout:

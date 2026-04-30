@@ -4,9 +4,9 @@ argument-hint: "[namespace] [Warning|Normal]"
 allowed-tools: Bash(kubectl get events *) Bash(kubectl config *)
 ---
 
-# Stream recent Kubernetes events
+# Snapshot recent Kubernetes events
 
-Pull the last hour of cluster events, sorted newest-first, and filter by namespace and event type so the user can see what is happening right now.
+Pull recent retained cluster events, sorted by timestamp, and filter by namespace and event type so the user can see what is happening right now. Do not claim a strict one-hour window unless the timestamps in the output make that filter clear.
 
 ## Inputs
 
@@ -32,13 +32,15 @@ kubectl config current-context
 
 If it cannot reach a cluster, stop and tell the user to check their kubeconfig.
 
-2. Pull events, sorted by last timestamp. Limit to 30 rows:
+2. Pull events, sorted by last timestamp. Limit the report to the latest 30 rows. If the shell has POSIX tools available, this command caps the raw output:
 
 ```bash
 kubectl get events --sort-by=.lastTimestamp --field-selector type=Warning -n <ns> 2>&1 | tail -30
 ```
 
 Swap `-n <ns>` for `--all-namespaces` if the user asked for cluster-wide. Swap `type=Warning` for `type=Normal` if they asked for normal events.
+
+On Windows shells without `tail`, run the same `kubectl get events ...` command without the pipe and summarize only the latest 30 rows from the returned output.
 
 3. Parse the output. For each row, pull:
    - `LAST SEEN`
@@ -52,8 +54,8 @@ Swap `-n <ns>` for `--all-namespaces` if the user asked for cluster-wide. Swap `
 ## Output format
 
 ```
-Warning events in <namespace> (last hour)
------------------------------------------
+Recent Warning events in <namespace>
+------------------------------------
 x3  pod/api-7c4d8b9f5d-xzq4p       BackOff              Back-off restarting failed container
 x1  deployment/redis                FailedMount          secret "redis-password" not found
 x1  pod/worker-2                    Unhealthy            Readiness probe failed: HTTP 500
@@ -62,8 +64,8 @@ x1  pod/worker-2                    Unhealthy            Readiness probe failed:
 For each failing object, if there are more than 2 events or a clear crash reason, suggest:
 `Use /docker-kubernetes:k8s-debug <pod-name> for a full diagnosis.`
 
-If no warnings in the last hour, print:
-`No warning events in <namespace> in the last hour. Cluster is quiet.`
+If no recent warnings are returned, print:
+`No recent warning events in <namespace>. Cluster is quiet.`
 
 ## Do not
 
