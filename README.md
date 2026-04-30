@@ -32,10 +32,16 @@ From the Anthropic plugin marketplace:
 /plugin install docker-kubernetes
 ```
 
-To install from a local directory for development:
+To install from a local checkout for development:
 
 ```
 claude --plugin-dir ./docker-kubernetes
+```
+
+If you are already inside the repository root, use:
+
+```
+claude --plugin-dir .
 ```
 
 ## Commands
@@ -44,7 +50,9 @@ All commands are invoked from inside Claude Code with `/docker-kubernetes:<comma
 
 | Command | What it does | Example |
 |---|---|---|
-| `/docker-kubernetes:doctor` | Check the local Docker and Kubernetes toolchain. Runs real diagnostic commands, not a prompt. | `/docker-kubernetes:doctor` |
+| `/docker-kubernetes:doctor` | Check the local Docker and Kubernetes toolchain through a fixed read-only diagnostic workflow. | `/docker-kubernetes:doctor` |
+| `/docker-kubernetes:runtime-check` | Detect host and WSL Docker, Compose, Kubernetes clients, Helm, local cluster tools, and Docker alternatives. Useful when Docker Desktop is unavailable. | `/docker-kubernetes:runtime-check` |
+| `/docker-kubernetes:smoke-test` | Run a local smoke test for Docker build/inspect/cleanup, Compose config, Helm lint/template, and kubectl client dry-run where tools are available. Explicit invocation only. | `/docker-kubernetes:smoke-test --target wsl --distro Ubuntu` |
 | `/docker-kubernetes:events` | Snapshot recent cluster events, sorted by time, filtered by namespace and type. | `/docker-kubernetes:events production Warning` |
 | `/docker-kubernetes:cluster-audit` | One-shot full audit: doctor + events + rbac-review + helm-review (chained). Opt-in only. | `/docker-kubernetes:cluster-audit production` |
 | `/docker-kubernetes:dockerfile` | Generate a Dockerfile for the current project. | `/docker-kubernetes:dockerfile python fastapi` |
@@ -90,6 +98,7 @@ This is how we keep individual skills lean while giving them deeper knowledge wh
 - Claude Code v2.0 or later.
 - Node.js on `PATH` for SessionStart and PostToolUse hooks (any current LTS). If Node is missing, hooks no-op silently; skills and commands still work.
 - For Docker commands: Docker installed and on `PATH`.
+- For Compose execution: Docker Compose v2 (`docker compose`) or legacy `docker-compose` installed and on `PATH`. The plugin can still generate Compose files without it.
 - For Kubernetes commands: `kubectl` installed, on `PATH`, and configured with a working context.
 - For Helm review: no runtime dependencies. The review reads chart files without running Helm.
 
@@ -107,22 +116,65 @@ All commands follow these rules:
 - `helm-review` is a static review. It reads chart files and flags issues without running `helm template` or `helm lint`, so rendering errors that only surface after templating are not caught.
 - `docker-debug` works from logs and `docker inspect` output. It does not introspect BuildKit cache or intermediate build layers.
 - `rbac-review` reflects the current cluster state. It does not simulate API version deprecations or upgrade paths.
-- Version 0.1 does not include image scanning (Trivy, Docker Scout), Kustomize support, or Helm chart generation. These may be added in later versions.
+- The current version does not include image scanning (Trivy, Docker Scout), Kustomize support, or Helm chart generation. These may be added in later versions.
 - Workflows assume Linux container images. Windows container scenarios are not specifically tuned for.
 
 ## Development
 
-To iterate locally on the plugin itself:
+To iterate locally on the plugin itself from the repository root:
 
 ```
-claude --plugin-dir ./docker-kubernetes
+claude --plugin-dir .
 ```
 
 Validate the plugin structure:
 
 ```
-claude plugin validate ./docker-kubernetes
+claude plugin validate .
 ```
+
+Run the offline local test suite:
+
+```
+node tests/run.js
+```
+
+The offline suite does not require Docker Desktop, WSL, `kubectl`, Helm, or a live cluster. It validates the plugin manifest, Markdown frontmatter, hook syntax, SessionStart detection, and PostToolUse reactions by feeding synthetic Docker, Compose, Kubernetes, and Helm hook events into the Node hook scripts.
+
+Check the actual local runtime capability matrix:
+
+```
+node bin/runtime-check.js
+```
+
+This is read-only. It detects host and WSL tooling and recommends whether to use host Docker, WSL Docker, a remote Docker context, Helm/static validation, or a local cluster tool such as kind, k3d, or minikube.
+
+Run live local smoke checks where tools are available:
+
+```
+node bin/smoke-test.js --target auto
+```
+
+On Windows machines with Docker only inside WSL:
+
+```
+node bin/smoke-test.js --target wsl --distro Ubuntu
+```
+
+The smoke runner creates and removes a temporary `claude-devkit-smoke:<timestamp>` image, renders a temporary Compose file, runs Helm lint/template if Helm exists, and uses kubectl client dry-run if kubectl exists. The kubectl dry-run disables server schema validation so it remains a client check even when a cluster context is unavailable. It does not install tools, create clusters, or apply Kubernetes resources.
+
+## Contributing
+
+Use a feature branch for changes and open a pull request against `main` for review. If you have write access to this repository, push the branch to `origin`. If you do not have write access, fork the repository, push the branch to your fork, and open a pull request back to the upstream repository.
+
+Before opening a pull request, run:
+
+```
+node tests/run.js
+claude plugin validate .
+```
+
+For runtime-sensitive changes, also include the relevant `node bin/runtime-check.js` or `node bin/smoke-test.js --target auto` output in the pull request description.
 
 ## License
 

@@ -2,7 +2,7 @@
 name: docker-debug
 description: Diagnose why a Docker build is failing or why a container will not start or is crashing. Use when the user says a Docker build is broken, a container exits immediately, a container is in a restart loop, or they cannot understand error output from Docker.
 argument-hint: "[container-id-or-error-context]"
-allowed-tools: Bash(docker ps *) Bash(docker ps) Bash(docker logs *) Bash(docker inspect *) Bash(docker events *) Bash(docker version *) Bash(docker info *) Bash(docker image *) Bash(docker history *) Bash(docker compose ps *) Bash(docker compose ps) Bash(docker compose logs *) Bash(docker compose config *) Bash(docker compose config) Bash(docker compose top *) Read Grep
+allowed-tools: Bash(docker ps *) Bash(docker ps) Bash(docker logs *) Bash(docker inspect *) Bash(docker events *) Bash(docker version *) Bash(docker info *) Bash(docker image *) Bash(docker history *) Bash(docker compose ps *) Bash(docker compose ps) Bash(docker compose logs *) Bash(docker compose config *) Bash(docker compose config) Bash(docker compose top *) Bash(docker-compose ps *) Bash(docker-compose logs *) Bash(docker-compose config *) Bash(docker-compose top *) Read Grep
 ---
 
 # Diagnose Docker failures
@@ -52,7 +52,7 @@ Find the root cause of a Docker build or runtime failure and suggest a concrete 
 4. Common Compose-specific failures:
    - **Service stuck in "waiting" because `depends_on` target is unhealthy**: the other service has a failing healthcheck. Inspect it with `docker compose logs <dep>` and `docker inspect <container>`.
    - **Env var not substituted**: the `.env` file is missing, in the wrong directory, or the variable name does not match. `docker compose config` shows the resolved values.
-   - **Volume mount shows empty**: host path typo, or Docker Desktop file sharing is not enabled for the drive (Windows and macOS).
+   - **Volume mount shows empty**: host path typo, an unshared host path, or a path translation mismatch between the host OS and the container runtime.
    - **Service cannot reach another by DNS name**: the two services are on different networks. Check the `networks` block and make sure both are attached to the same one.
    - **"port is already allocated"**: another compose project or host process is using that port. Run `docker compose ps -a` across projects or change the host-side port mapping.
 
