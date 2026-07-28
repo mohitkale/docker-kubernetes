@@ -4,7 +4,7 @@
 
 **Repository:** https://github.com/mohitkale/docker-kubernetes  
 
-**Maintainer:** Mohit Kale (contact: not-published)
+**Maintainer:** Mohit Kale
 
 ## Summary
 
@@ -39,5 +39,4 @@ We may update this file when distribution or behavior materially changes. The cu
 
 ## Contact
 
-- **Email:** not-published  
 - **Issues:** https://github.com/mohitkale/docker-kubernetes/issues
