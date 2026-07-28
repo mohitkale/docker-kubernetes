@@ -48,7 +48,7 @@ Every manifest you produce must follow these rules:
 ```bash
 kubectl apply -f k8s/
 kubectl rollout status deployment/<name>
-kubectl get pods -l app.kubernetes.io/name=<name>
+kubectl get pods -l app.kubernetes.io/name=<name>,app.kubernetes.io/instance=<instance>
 ```
 
 ## Example: simple web API
@@ -60,15 +60,18 @@ metadata:
   name: api
   labels:
     app.kubernetes.io/name: api
+    app.kubernetes.io/instance: api
 spec:
   replicas: 3
   selector:
     matchLabels:
       app.kubernetes.io/name: api
+      app.kubernetes.io/instance: api
   template:
     metadata:
       labels:
         app.kubernetes.io/name: api
+        app.kubernetes.io/instance: api
     spec:
       securityContext:
         runAsNonRoot: true
@@ -111,9 +114,11 @@ metadata:
   name: api
   labels:
     app.kubernetes.io/name: api
+    app.kubernetes.io/instance: api
 spec:
   selector:
     app.kubernetes.io/name: api
+    app.kubernetes.io/instance: api
   ports:
     - name: http
       port: 80
@@ -129,6 +134,7 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: api
+      app.kubernetes.io/instance: api
 ```
 
 ## Example: Ingress with TLS
@@ -192,16 +198,21 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: redis
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: redis
 spec:
   serviceName: redis
   replicas: 3
   selector:
     matchLabels:
       app.kubernetes.io/name: redis
+      app.kubernetes.io/instance: redis
   template:
     metadata:
       labels:
         app.kubernetes.io/name: redis
+        app.kubernetes.io/instance: redis
     spec:
       securityContext:
         runAsNonRoot: true

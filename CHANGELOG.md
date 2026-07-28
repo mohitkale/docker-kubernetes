@@ -4,6 +4,23 @@ All notable changes to this plugin are documented here.
 
 The format is based on Keep a Changelog, and this plugin uses semantic versioning.
 
+## [1.1.1] - 2026-07-28
+
+### Added
+
+- `runtime-check` now reports Docker Desktop Kubernetes state, mode, and version, and recommends enabling or starting the built-in cluster when it is available but inactive.
+
+### Changed
+
+- Reworked the README into a ZIP-first product guide with safe real-world workflows, command examples, and local-testing expectations.
+
+### Fixed
+
+- `smoke-test` now uses an isolated empty kubeconfig and kubectl's local object generator, so invalid or unavailable user kubeconfig files cannot break the offline client check.
+- The Next.js Dockerfile example installs development dependencies in the build stage, allowing framework build tooling to run before the standalone runtime image is assembled.
+- `k8s-debug` now handles pods that fail before their first process starts: it treats unavailable previous-container logs as expected for `StartError` and uses describe/events for the root cause.
+- Manifest examples now apply both required Kubernetes labels consistently across workload selectors, Services, and PodDisruptionBudgets.
+
 ## [1.1.0] - 2026-04-30
 
 ### Added

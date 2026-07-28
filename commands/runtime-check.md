@@ -13,14 +13,14 @@ node "${CLAUDE_PLUGIN_ROOT}/bin/runtime-check.js"
 
 ## What to report
 
-1. Whether host Docker is installed and whether its daemon responds.
+1. Whether host Docker is installed, whether its daemon responds, and whether Docker Desktop Kubernetes is running, stopped, or disabled.
 2. On Windows, whether WSL is available, which distro is selected, and whether Docker/Compose work inside WSL.
 3. Whether `kubectl`, Helm, kind, k3d, minikube, Podman, nerdctl, kubeconform, or kubeval are present on the usable host or WSL path.
 4. The best local test path:
    - Host Docker on Linux, macOS, or Windows when a local daemon is available.
    - WSL Docker on Windows when Docker Desktop or the host daemon is unavailable.
    - Helm, kubeconform, or kubeval for offline Kubernetes manifest checks on any OS.
-   - kind, k3d, or minikube plus `kubectl` for live local Kubernetes checks.
+   - Docker Desktop Kubernetes, kind, k3d, or minikube plus `kubectl` for live local Kubernetes checks.
    - A remote Docker context or remote/dev kubeconfig when local runtimes are blocked.
 
 ## Do not

@@ -124,6 +124,22 @@ function dockerComposeV2OnHost() {
   return run("host:docker-compose-v2:version", "docker", ["compose", "version"]);
 }
 
+function fieldValue(text, fieldName) {
+  const match = clean(text).match(new RegExp(`^${fieldName}:\\s*(.+)$`, "im"));
+  return match ? match[1].trim() : "";
+}
+
+function dockerDesktopKubernetesOnHost() {
+  const result = run("host:docker-desktop:kubernetes-status", "docker", ["desktop", "kubernetes", "status"]);
+  if (result.status !== 0) return null;
+  const output = result.stdout || result.stderr;
+  return {
+    state: fieldValue(output, "State") || "unknown",
+    mode: fieldValue(output, "Mode"),
+    version: fieldValue(output, "Version")
+  };
+}
+
 function parseDefaultDistro(statusText) {
   const match = clean(statusText).match(/Default Distribution:\s*([^\r\n]+)/i);
   return match ? match[1].trim() : "";
@@ -216,6 +232,7 @@ function inspectHost(platform) {
     tools.docker.server = server.status === 0 ? firstLine(server.stdout) : "";
     tools.docker.serverError = server.status === 0 ? "" : firstLine(server.stderr || server.stdout);
     tools.docker.composeV2 = composeV2.status === 0 ? firstLine(composeV2.stdout) : "";
+    tools.dockerDesktopKubernetes = dockerDesktopKubernetesOnHost();
   }
 
   return tools;
@@ -247,6 +264,11 @@ function printReport(report) {
       console.log(`- docker daemon: unavailable (${report.hostTools.docker.serverError || "no response"})`);
     }
     if (report.hostTools.docker.composeV2) console.log(`- docker compose: ${report.hostTools.docker.composeV2}`);
+    const desktopKubernetes = report.hostTools.dockerDesktopKubernetes;
+    if (desktopKubernetes) {
+      const details = [desktopKubernetes.mode, desktopKubernetes.version].filter(Boolean).join(", ");
+      console.log(`- Docker Desktop Kubernetes: ${desktopKubernetes.state}${details ? ` (${details})` : ""}`);
+    }
   }
 
   console.log("");
@@ -281,7 +303,11 @@ function printReport(report) {
     (report.hostTools.kubectl && report.hostTools.kubectl.found) ||
     (report.wsl && report.wsl.tools.kubectl && report.wsl.tools.kubectl.found)
   );
-  const localClusterTool = ["kind", "k3d", "minikube"].some(tool =>
+  const dockerDesktopKubernetes = report.hostTools.dockerDesktopKubernetes;
+  const dockerDesktopClusterRunning = Boolean(
+    dockerDesktopKubernetes && dockerDesktopKubernetes.state.toLowerCase() === "running"
+  );
+  const localClusterTool = dockerDesktopClusterRunning || ["kind", "k3d", "minikube"].some(tool =>
     (report.hostTools[tool] && report.hostTools[tool].found) ||
     (report.wsl && report.wsl.tools[tool] && report.wsl.tools[tool].found)
   );
@@ -295,6 +321,7 @@ function printReport(report) {
   else console.log("1. No live Docker daemon found. Use offline hook tests, static Dockerfile review, or an approved remote Docker context.");
 
   if (kubectlAvailable && localClusterTool) console.log("2. Kubernetes local-cluster testing is possible with the detected kubectl and local cluster tool.");
+  else if (kubectlAvailable && dockerDesktopKubernetes) console.log(`2. Docker Desktop Kubernetes is available but ${dockerDesktopKubernetes.state.toLowerCase()}. Enable or start it in Docker Desktop for live local-cluster testing.`);
   else if (kubectlAvailable) console.log("2. kubectl is present, but no local cluster tool was found. Use a remote/dev kubeconfig or install an approved kind, k3d, or minikube path.");
   else console.log("2. kubectl is missing. Live Kubernetes checks cannot run locally until kubectl and a kubeconfig or local cluster tool are available.");
 

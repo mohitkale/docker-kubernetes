@@ -1,181 +1,195 @@
 # Docker and Kubernetes DevKit
 
-A Claude Code plugin that helps you write Dockerfiles, generate Kubernetes manifests, debug failing containers and pods, and audit Helm charts and RBAC.
+Give Claude Code a careful, practical DevOps teammate for Docker and Kubernetes work.
 
-## What it does
+Docker and Kubernetes DevKit helps turn the moments that normally send you hunting through logs into a short, evidence-backed conversation: a failing build, a pod that never starts, a Service with no endpoints, a chart that is almost ready to ship, or a manifest that needs to be safe by default.
 
-- Generates production-grade Dockerfiles for any common language or framework.
-- Creates or updates `docker-compose.yml` for local multi-service setups.
-- Explains why a Docker build or container is failing and suggests a concrete fix.
-- Investigates a failing Kubernetes pod by pulling events, logs, and describe output.
-- Generates Kubernetes manifests from a plain-English description.
-- Reviews Helm charts for security, correctness, and production readiness.
-- Audits RBAC for overly broad permissions.
+It is designed to be useful on a laptop with Docker Desktop just as much as in a production-oriented repository. It reads first, explains what it found, and asks before doing anything destructive.
 
-## Example
-
-```
-> /docker-kubernetes:k8s-debug api-7c4d8b9f5d-xzq4p default
-
-Pulled events, logs, and describe output for pod api-7c4d8b9f5d-xzq4p.
-Root cause: the container exits with ECONNREFUSED to redis:6379. The redis
-Service exists but its selector does not match any pod.
-Fix: change the Service selector in manifests/redis-svc.yaml from app=cache
-to app=redis, then reapply.
+```mermaid
+flowchart LR
+    A["Your Docker or Kubernetes question"] --> B["Claude Code"]
+    B --> C["Docker and Kubernetes DevKit"]
+    C --> D["Docker: builds, Compose, containers"]
+    C --> E["Kubernetes: pods, events, manifests, RBAC"]
+    C --> F["Helm: chart review and rendering"]
+    D --> G["Clear diagnosis or safe next step"]
+    E --> G
+    F --> G
 ```
 
-## Installation
+## Install from GitHub or a ZIP file
 
-From the Anthropic plugin marketplace:
+This project is intentionally easy to use without a marketplace account. Download the [latest GitHub ZIP](https://github.com/mohitkale/docker-kubernetes/archive/refs/heads/main.zip), unzip it, and load the folder into Claude Code.
 
-```
-/plugin install docker-kubernetes
-```
-
-To install from a local checkout for development:
-
-```
-claude --plugin-dir ./docker-kubernetes
+```bash
+cd ~/Downloads
+unzip docker-kubernetes-main.zip
+claude --plugin-dir "$PWD/docker-kubernetes-main"
 ```
 
-If you are already inside the repository root, use:
+Claude Code can also load the ZIP directly:
 
+```bash
+claude --plugin-dir ~/Downloads/docker-kubernetes-main.zip
 ```
+
+If you already cloned the repository, run this from its root:
+
+```bash
 claude --plugin-dir .
 ```
+
+The plugin is active for that Claude Code session. For a convenient repeatable launch, keep the extracted folder in a stable location and use the same `--plugin-dir` command. No API keys, MCP configuration, or project settings file are required.
+
+## What you can ask for
+
+| When you say… | DevKit helps by… |
+|---|---|
+| “Why does this Docker build fail?” | Reading the build context, image metadata, logs, and Dockerfile to identify the root cause. |
+| “Add Postgres and Redis locally.” | Creating or improving a safe, health-checked Compose setup. |
+| “This pod is not starting.” | Pulling status, describe output, events, and the right logs without changing the cluster. |
+| “Make this app deployable.” | Writing production-minded Kubernetes manifests with resource limits, probes, labels, and security defaults. |
+| “Is this Helm chart ready?” | Reviewing chart metadata, templates, RBAC, resources, probes, and image practices. |
+| “Is this access too broad?” | Auditing Roles, ClusterRoles, bindings, and service-account permissions for least privilege. |
+
+## A few real-world workflows
+
+### Find a broken container quickly
+
+```text
+/docker-kubernetes:docker-debug payments-api
+```
+
+Typical response:
+
+```text
+Root cause: the container exits because PORT is unset at startup.
+
+Evidence:
+- docker inspect shows exit code 1.
+- Container logs report: "PORT must be set".
+
+Fix: set PORT=3000 in the runtime environment, then run the image again.
+```
+
+### Understand a pod that cannot start
+
+```text
+/docker-kubernetes:k8s-debug api-7c4d8b9f5d-xzq4p staging
+```
+
+Typical response:
+
+```text
+Root cause: the pod cannot start because its configured command does not exist in the image.
+
+Evidence:
+- State: StartError
+- exec: "/app/serve": stat /app/serve: no such file or directory
+
+Fix: change command/args to match the image ENTRYPOINT and CMD.
+```
+
+### Start with safer manifests
+
+```text
+/docker-kubernetes:manifest a Node API called catalog with 3 replicas and an Ingress
+```
+
+DevKit will use consistent Kubernetes labels, a pinned image tag, resource requests and limits, probes, non-root execution, and a PodDisruptionBudget when appropriate.
+
+### Check a chart before a release
+
+```text
+/docker-kubernetes:helm-review ./charts/catalog
+```
+
+The review is read-only. It points out concerns such as `latest` tags, missing probes, broad RBAC, absent NetworkPolicies, or template patterns that make a chart hard to operate.
 
 ## Commands
 
-All commands are invoked from inside Claude Code with `/docker-kubernetes:<command>`.
+Use commands from inside Claude Code with the `docker-kubernetes:` prefix.
 
-| Command | What it does | Example |
-|---|---|---|
-| `/docker-kubernetes:doctor` | Check the local Docker and Kubernetes toolchain through a fixed read-only diagnostic workflow. | `/docker-kubernetes:doctor` |
-| `/docker-kubernetes:runtime-check` | Detect host and WSL Docker, Compose, Kubernetes clients, Helm, local cluster tools, and Docker alternatives. Useful when Docker Desktop is unavailable. | `/docker-kubernetes:runtime-check` |
-| `/docker-kubernetes:smoke-test` | Run a local smoke test for Docker build/inspect/cleanup, Compose config, Helm lint/template, and kubectl client dry-run where tools are available. Explicit invocation only. | `/docker-kubernetes:smoke-test --target wsl --distro Ubuntu` |
-| `/docker-kubernetes:events` | Snapshot recent cluster events, sorted by time, filtered by namespace and type. | `/docker-kubernetes:events production Warning` |
-| `/docker-kubernetes:cluster-audit` | One-shot full audit: doctor + events + rbac-review + helm-review (chained). Opt-in only. | `/docker-kubernetes:cluster-audit production` |
-| `/docker-kubernetes:dockerfile` | Generate a Dockerfile for the current project. | `/docker-kubernetes:dockerfile python fastapi` |
-| `/docker-kubernetes:compose` | Generate or update a docker-compose.yml. | `/docker-kubernetes:compose postgres and redis` |
-| `/docker-kubernetes:docker-debug` | Diagnose a Docker build or container failure. | `/docker-kubernetes:docker-debug my-api-container` |
-| `/docker-kubernetes:k8s-debug` | Investigate a failing Kubernetes pod. | `/docker-kubernetes:k8s-debug api-7c4d8b9f5d-xzq4p` |
-| `/docker-kubernetes:manifest` | Generate Kubernetes manifests from a description. | `/docker-kubernetes:manifest a Node app with 3 replicas and an Ingress` |
-| `/docker-kubernetes:helm-review` | Audit a Helm chart. | `/docker-kubernetes:helm-review ./charts/api` |
-| `/docker-kubernetes:rbac-review` | Audit Kubernetes RBAC for overly broad permissions. | `/docker-kubernetes:rbac-review production` |
+| Command | Use it when… |
+|---|---|
+| `/docker-kubernetes:doctor` | You want a quick local Docker and Kubernetes health check. |
+| `/docker-kubernetes:runtime-check` | You need to know which host, WSL, Docker Desktop, Kubernetes, Helm, or local-cluster path is available. |
+| `/docker-kubernetes:smoke-test` | You explicitly want to verify Docker, Compose, Helm, and kubectl locally. |
+| `/docker-kubernetes:events [namespace] [Warning\|Normal]` | You need a recent, ordered event snapshot. |
+| `/docker-kubernetes:cluster-audit [namespace]` | You want one opt-in, read-only Docker/Kubernetes/RBAC/Helm review. |
+| `/docker-kubernetes:dockerfile [framework]` | You want a production-minded Dockerfile and `.dockerignore`. |
+| `/docker-kubernetes:compose [services]` | You want a local multi-service Compose setup. |
+| `/docker-kubernetes:docker-debug [container-or-error]` | A build, image, or container is failing. |
+| `/docker-kubernetes:k8s-debug <pod> [namespace]` | A pod or workload is not healthy. |
+| `/docker-kubernetes:manifest <description>` | You want Kubernetes YAML from a plain-English description. |
+| `/docker-kubernetes:helm-review [chart-path]` | You want a static Helm chart review. |
+| `/docker-kubernetes:rbac-review [namespace]` | You want a least-privilege RBAC audit. |
 
-## Agents
+## Built to be safe around real infrastructure
 
-The plugin ships with three subagents that Claude may delegate to automatically when the work fits:
+- Diagnostic commands use read-only Docker and Kubernetes operations by default.
+- Changes such as `kubectl apply`, `delete`, `patch`, `edit`, image removal, or pruning require your explicit approval.
+- The plugin does not print values from `.env` files or Kubernetes Secrets.
+- Session hooks only look for project markers such as Dockerfiles, Compose files, charts, and manifest folders. They do not send project data to a separate service.
+- The optional smoke test creates a temporary scratch image and temporary files, then removes them. It does not apply Kubernetes resources or install a Helm release.
 
-- **container-forensics**: deep Docker failure diagnosis.
-- **pod-forensics**: deep Kubernetes pod failure diagnosis.
-- **manifest-author**: specialized Kubernetes YAML writer.
+## Local setup
 
-You can also invoke an agent explicitly, for example:
+The plugin itself has no package installation step. These tools unlock the matching capabilities:
 
-```
-Ask the pod-forensics agent why my api pod is in CrashLoopBackOff.
-```
+| Capability | What you need |
+|---|---|
+| Docker and Compose workflows | Docker Desktop or Docker Engine with `docker compose` |
+| Kubernetes workflows | `kubectl` and a valid context, such as Docker Desktop’s `docker-desktop` |
+| Helm rendering smoke checks | Helm on your PATH (`brew install helm` on macOS) |
+| Hooks | Node.js on your PATH |
 
-## Hooks
+Start with:
 
-On session start, the plugin runs a small Node.js script that inspects the current working directory for container-related files. If it finds `Dockerfile`, `docker-compose.yml`, `Chart.yaml`, or a `k8s`, `manifests`, or `charts` directory, it injects a one-line context note so Claude knows which skills apply without the user having to say so. The hook is silent if nothing matches.
-
-A second hook fires **after every Bash tool call** (`PostToolUse`). It watches for `kubectl apply`, `docker build`, `helm install`, and similar state-changing commands, and injects a short follow-up note: what to check next, which skill to run if something looks off. Unlike SessionStart, this one is reactive rather than startup-only.
-
-Both hooks require Node.js on `PATH`. Without Node, they quietly no-op and every skill and command still works.
-
-## Reference files
-
-A `reference/` directory ships deeper knowledge that skills read only when they need it. Nothing is loaded at session start; the files just sit there until a skill explicitly reads one.
-
-- `reference/pod-error-patterns.md` lists 10+ common pod failures (CrashLoopBackOff, ImagePullBackOff, OOMKilled, Pending, Evicted, etc.) with the kubectl output, root causes, and fix commands. The `k8s-debug` skill reads this when it encounters an unfamiliar status.
-
-This is how we keep individual skills lean while giving them deeper knowledge when a specific scenario calls for it.
-
-## Requirements
-
-- Claude Code v2.0 or later.
-- Node.js on `PATH` for SessionStart and PostToolUse hooks (any current LTS). If Node is missing, hooks no-op silently; skills and commands still work.
-- For Docker commands: Docker installed and on `PATH`.
-- For Compose execution: Docker Compose v2 (`docker compose`) or legacy `docker-compose` installed and on `PATH`. The plugin can still generate Compose files without it.
-- For Kubernetes commands: `kubectl` installed, on `PATH`, and configured with a working context.
-- For Helm review: no runtime dependencies. The review reads chart files without running Helm.
-
-## Safety
-
-All commands follow these rules:
-
-1. Destructive operations (`delete`, `rmi`, `prune`, `kill`, `edit`, `patch`) always require explicit user confirmation. They are never part of the default command workflow.
-2. Read-only commands (`get`, `describe`, `logs`, `inspect`, `ps`) run without prompting because they are safe.
-3. The plugin never prints secret values from `.env` files or Kubernetes Secrets into the conversation.
-4. File writes are announced before they happen so the user can stop them.
-
-## Known limitations
-
-- `helm-review` is a static review. It reads chart files and flags issues without running `helm template` or `helm lint`, so rendering errors that only surface after templating are not caught.
-- `docker-debug` works from logs and `docker inspect` output. It does not introspect BuildKit cache or intermediate build layers.
-- `rbac-review` reflects the current cluster state. It does not simulate API version deprecations or upgrade paths.
-- The current version does not include image scanning (Trivy, Docker Scout), Kustomize support, or Helm chart generation. These may be added in later versions.
-- Workflows assume Linux container images. Windows container scenarios are not specifically tuned for.
-
-## Development
-
-To iterate locally on the plugin itself from the repository root:
-
-```
-claude --plugin-dir .
+```text
+/docker-kubernetes:runtime-check
+/docker-kubernetes:doctor
 ```
 
-Validate the plugin structure:
+To run the deliberate local verification path:
 
-```
-claude plugin validate .
+```text
+/docker-kubernetes:smoke-test --target host
 ```
 
-Run the offline local test suite:
+## What the smoke test proves
 
-```
+When the tools are available, it checks all of the following without leaving a workload behind:
+
+1. Docker daemon access.
+2. A no-network `FROM scratch` image build, inspection, and cleanup.
+3. Compose configuration rendering.
+4. Helm linting and template rendering for a generated temporary chart.
+5. kubectl client access and local object generation with an isolated kubeconfig.
+6. Kubernetes API reachability.
+
+## Current boundaries
+
+- Helm review is intentionally static; it never runs `helm install` or `helm upgrade`.
+- The plugin does not yet include image scanning, Kustomize workflows, or Helm chart generation.
+- Windows container scenarios are not specifically tuned.
+
+## Developing the plugin
+
+```bash
 node tests/run.js
-```
-
-The offline suite does not require Docker Desktop, WSL, `kubectl`, Helm, or a live cluster. It validates the plugin manifest, Markdown frontmatter, hook syntax, SessionStart detection, and PostToolUse reactions by feeding synthetic Docker, Compose, Kubernetes, and Helm hook events into the Node hook scripts.
-
-Check the actual local runtime capability matrix:
-
-```
+claude plugin validate .
 node bin/runtime-check.js
+node bin/smoke-test.js --target host
 ```
 
-This is read-only. It detects host and WSL tooling and recommends whether to use host Docker, WSL Docker, a remote Docker context, Helm/static validation, or a local cluster tool such as kind, k3d, or minikube.
+The offline test suite does not need Docker, Kubernetes, Helm, or a live cluster. The runtime and smoke commands are explicit opt-in checks.
 
-Run live local smoke checks where tools are available:
+## Privacy and support
 
-```
-node bin/smoke-test.js --target auto
-```
-
-On Windows machines with Docker only inside WSL:
-
-```
-node bin/smoke-test.js --target wsl --distro Ubuntu
-```
-
-The smoke runner creates and removes a temporary `claude-devkit-smoke:<timestamp>` image, renders a temporary Compose file, runs Helm lint/template if Helm exists, and uses kubectl client dry-run if kubectl exists. The kubectl dry-run disables server schema validation so it remains a client check even when a cluster context is unavailable. It does not install tools, create clusters, or apply Kubernetes resources.
-
-## Contributing
-
-Use a feature branch for changes and open a pull request against `main` for review. If you have write access to this repository, push the branch to `origin`. If you do not have write access, fork the repository, push the branch to your fork, and open a pull request back to the upstream repository.
-
-Before opening a pull request, run:
-
-```
-node tests/run.js
-claude plugin validate .
-```
-
-For runtime-sensitive changes, also include the relevant `node bin/runtime-check.js` or `node bin/smoke-test.js --target auto` output in the pull request description.
+See [PRIVACY.md](PRIVACY.md) for the data-handling summary. For questions, feature requests, or bug reports, use the repository’s GitHub Issues page.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [LICENSE](LICENSE).

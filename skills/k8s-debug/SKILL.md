@@ -40,10 +40,15 @@ Focus on:
 
 ```bash
 kubectl logs <pod> -n <ns> --tail=200 --timestamps
+```
+
+If `describe` shows a `Restart Count` greater than zero or a `Last State`, also run:
+
+```bash
 kubectl logs <pod> -n <ns> --previous --tail=200 --timestamps
 ```
 
-The `--previous` flag shows logs from the last crashed instance, which is usually what you need in a CrashLoopBackOff.
+The `--previous` flag shows logs from the last crashed instance, which is usually what you need in a CrashLoopBackOff. Do not treat `previous terminated container not found` as a second failure: a `StartError` can fail before the first process ever starts, leaving no log stream. In that case, use the `State.Message` and the pod Events from `describe` as the evidence.
 
 For pods with multiple containers, add `-c <container-name>`.
 
@@ -92,6 +97,7 @@ A namespace with a default-deny policy needs an explicit allow rule for the traf
 
 - **ImagePullBackOff or ErrImagePull**: image name or tag wrong, or missing registry credentials. Check the image reference and any `imagePullSecrets`.
 - **CrashLoopBackOff**: the container keeps exiting on startup. Read `--previous` logs for the real error. Usually a missing env var, failed migration, or bad config.
+- **StartError or exit code 128**: the runtime could not start the configured executable, often because `command` points to a path that does not exist in the image. Read the `State.Message` and Events, then correct `command` or `args`. Do not use `kubectl exec`; the container never started.
 - **OOMKilled (Exit code 137)**: the container ran out of memory. Raise `resources.limits.memory` or fix a memory leak.
 - **Init:Error**: an init container failed. Use `kubectl logs <pod> -c <init-container-name>` to read its output.
 - **Pending with "0/N nodes are available"**: the scheduler could not place the pod. Common causes: insufficient CPU or memory on any node, node selector or affinity rules, taints without tolerations, PVC not bound.

@@ -19,12 +19,12 @@ node "${CLAUDE_PLUGIN_ROOT}/bin/smoke-test.js" $ARGUMENTS
 2. A no-network `FROM scratch` Docker build, image inspect, and cleanup.
 3. Docker Compose v2 or legacy `docker-compose` config rendering.
 4. Helm `lint` and `template` on a generated temporary chart when Helm is available.
-5. `kubectl version --client` and `kubectl create --dry-run=client --validate=false` on a generated temporary manifest when `kubectl` is available.
+5. `kubectl version --client` and local Deployment generation with `kubectl create deployment --dry-run=client` when `kubectl` is available.
 6. Kubernetes cluster reachability with `kubectl cluster-info` when `kubectl` is available.
 
 ## Safety
 
 - The Docker image is tagged `claude-devkit-smoke:<timestamp>` and removed before exit.
-- Helm and kubectl checks use temporary files.
+- Helm and kubectl checks use temporary files, including an isolated empty kubeconfig.
 - No Kubernetes resource is applied; kubectl uses client dry-run only.
 - The command does not install tools or create a local Kubernetes cluster.

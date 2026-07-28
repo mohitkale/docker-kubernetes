@@ -183,11 +183,23 @@ Readiness probe path is returning 503. The pod is running, but Services will not
 
 For batch workloads, Completed is the success state. Not an error. The pod is kept around for log inspection.
 
-## Container Cannot Run Error 127
+## StartError / Container Cannot Run (often exit code 127 or 128)
 
-Exit 127 usually means "command not found" inside the container. Either the image does not contain the binary, or `command` in the manifest points at a path that does not exist inside the image.
+**Typical output**
 
-Run `kubectl exec <pod> -- ls /path/to/binary` to confirm.
+```
+State:          Terminated
+  Reason:       StartError
+  Message:      exec: "/not-found": stat /not-found: no such file or directory
+```
+
+**Cause**
+
+The runtime could not start the configured executable. The image may not contain the binary, or `command` in the manifest may point to a path that does not exist. Unlike a normal application crash, no process starts, so both normal and `--previous` logs can be empty or unavailable.
+
+**Fix pattern**
+
+Read the container `Command`, `Args`, `State.Message`, and Events in `kubectl describe pod <pod>`. Correct the manifest command or args to match the image `ENTRYPOINT` and `CMD`. Do not use `kubectl exec` to verify the path because the container never started.
 
 ## Service has no endpoints
 

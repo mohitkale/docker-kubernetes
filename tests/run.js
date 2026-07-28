@@ -9,6 +9,8 @@ const SESSION_HOOK = path.join(ROOT, "hooks", "session-start.js");
 const POST_HOOK = path.join(ROOT, "hooks", "post-tool-use.js");
 const RUNTIME_CHECK = path.join(ROOT, "bin", "runtime-check.js");
 const SMOKE_TEST = path.join(ROOT, "bin", "smoke-test.js");
+const K8S_DEBUG_SKILL = path.join(ROOT, "skills", "k8s-debug", "SKILL.md");
+const MANIFEST_SKILL = path.join(ROOT, "skills", "manifest", "SKILL.md");
 const HOOKS_JSON = path.join(ROOT, "hooks", "hooks.json");
 const PLUGIN_JSON = path.join(ROOT, ".claude-plugin", "plugin.json");
 const FIXTURES = path.join(__dirname, "fixtures");
@@ -176,7 +178,24 @@ runTest("bin scripts compile", () => {
 });
 
 runTest("smoke-test kubectl dry-run is offline", () => {
-  expectIncludes(readText(SMOKE_TEST), '"create", "--dry-run=client", "--validate=false"');
+  const source = readText(SMOKE_TEST);
+  expectIncludes(source, "createKubeconfig(workRoot)");
+  expectIncludes(source, '"--kubeconfig", kubeconfig, "create", "deployment", "smoke"');
+  expectIncludes(source, '"--dry-run=client", "--output=yaml"');
+});
+
+runTest("k8s-debug handles a pod StartError without previous logs", () => {
+  const source = readText(K8S_DEBUG_SKILL);
+  expectIncludes(source, "Restart Count");
+  expectIncludes(source, "previous terminated container not found");
+  expectIncludes(source, "StartError or exit code 128");
+});
+
+runTest("manifest examples use name and instance selector labels", () => {
+  const source = readText(MANIFEST_SKILL);
+  expectIncludes(source, "app.kubernetes.io/instance: api");
+  expectIncludes(source, "app.kubernetes.io/instance: redis");
+  expectIncludes(source, "app.kubernetes.io/name=<name>,app.kubernetes.io/instance=<instance>");
 });
 
 runTest("skills have frontmatter", () => {
@@ -333,6 +352,34 @@ runTest("runtime-check fixture reports host validators", () => {
     expectIncludes(output, "kubectl: found (v1.30.0)");
     expectIncludes(output, "kubeconform: found");
     expectIncludes(output, "Offline Kubernetes checks are possible");
+  } finally {
+    fs.rmSync(fixturePath, { force: true });
+  }
+});
+
+runTest("runtime-check fixture reports disabled Docker Desktop Kubernetes", () => {
+  const fixturePath = path.join(os.tmpdir(), `runtime-desktop-k8s-${process.pid}.json`);
+  const fixture = {
+    platform: "darwin",
+    arch: "arm64",
+    commands: {
+      "host:docker:path": { status: 0, stdout: "/usr/local/bin/docker\n" },
+      "host:docker:version": { status: 0, stdout: "Docker version 29.6.2\n" },
+      "host:docker:server": { status: 0, stdout: "29.6.2\n" },
+      "host:docker-compose-v2:version": { status: 0, stdout: "Docker Compose version v5.3.1\n" },
+      "host:docker-desktop:kubernetes-status": {
+        status: 0,
+        stdout: "Field               Value\nState:              disabled\nMode:               kind\nVersion:            1.36.1\n"
+      },
+      "host:kubectl:path": { status: 0, stdout: "/usr/local/bin/kubectl\n" },
+      "host:kubectl:version": { status: 0, stdout: "clientVersion:\n  gitVersion: v1.31.2\n" }
+    }
+  };
+  fs.writeFileSync(fixturePath, JSON.stringify(fixture));
+  try {
+    const output = execFileSync(process.execPath, [RUNTIME_CHECK, "--fixture", fixturePath], { encoding: "utf8" });
+    expectIncludes(output, "Docker Desktop Kubernetes: disabled (kind, 1.36.1)");
+    expectIncludes(output, "Docker Desktop Kubernetes is available but disabled");
   } finally {
     fs.rmSync(fixturePath, { force: true });
   }

@@ -61,7 +61,7 @@ docker run --rm -p 3000:3000 my-app
 FROM node:20.12-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 FROM node:20.12-alpine AS builder
 WORKDIR /app

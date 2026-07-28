@@ -197,33 +197,16 @@ function createHelmChart(root) {
   return chart;
 }
 
-function createManifest(root) {
-  const filePath = path.join(root, "deployment.yaml");
+function createKubeconfig(root) {
+  const filePath = path.join(root, "kubeconfig");
   fs.writeFileSync(filePath, [
-    "apiVersion: apps/v1",
-    "kind: Deployment",
-    "metadata:",
-    "  name: smoke",
-    "spec:",
-    "  replicas: 1",
-    "  selector:",
-    "    matchLabels:",
-    "      app.kubernetes.io/name: smoke",
-    "  template:",
-    "    metadata:",
-    "      labels:",
-    "        app.kubernetes.io/name: smoke",
-    "    spec:",
-    "      containers:",
-    "        - name: smoke",
-    "          image: example/smoke:1.0.0",
-    "          resources:",
-    "            requests:",
-    "              cpu: 10m",
-    "              memory: 16Mi",
-    "            limits:",
-    "              cpu: 50m",
-    "              memory: 64Mi",
+    "apiVersion: v1",
+    "kind: Config",
+    "preferences: {}",
+    "clusters: []",
+    "contexts: []",
+    "users: []",
+    'current-context: ""',
     ""
   ].join("\n"));
   return filePath;
@@ -290,9 +273,9 @@ function runSmoke(options) {
     if (commandExists("kubectl", selected.target, fixture, selected.distro)) {
       const client = runTarget(selected.target, selected.distro, "kubectl", ["version", "--client", "--output=yaml"], "client", fixture);
       resultLine(results, client.status === 0 ? "PASS" : "FAIL", "kubectl client", client.status === 0 ? "client available" : firstLine(client.stderr || client.stdout));
-      const manifest = toTargetPath(createManifest(workRoot), selected.target, selected.distro, fixture);
-      const dryRun = runTarget(selected.target, selected.distro, "kubectl", ["create", "--dry-run=client", "--validate=false", "-f", manifest], "dry-run", fixture);
-      resultLine(results, dryRun.status === 0 ? "PASS" : "FAIL", "kubectl client dry-run", dryRun.status === 0 ? "manifest accepted" : firstLine(dryRun.stderr || dryRun.stdout));
+      const kubeconfig = toTargetPath(createKubeconfig(workRoot), selected.target, selected.distro, fixture);
+      const dryRun = runTarget(selected.target, selected.distro, "kubectl", ["--kubeconfig", kubeconfig, "create", "deployment", "smoke", "--image=example/smoke:1.0.0", "--dry-run=client", "--output=yaml"], "dry-run", fixture);
+      resultLine(results, dryRun.status === 0 ? "PASS" : "FAIL", "kubectl client dry-run", dryRun.status === 0 ? "local object generation succeeded" : firstLine(dryRun.stderr || dryRun.stdout));
       const cluster = runTarget(selected.target, selected.distro, "kubectl", ["cluster-info"], "cluster-info", fixture);
       resultLine(results, cluster.status === 0 ? "PASS" : "SKIP", "Kubernetes cluster reachability", cluster.status === 0 ? "cluster reachable" : "no reachable cluster/context");
     } else {
