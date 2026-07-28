@@ -18,29 +18,56 @@ flowchart LR
     F --> G
 ```
 
-## Install from GitHub or a ZIP file
+## Install on macOS or Windows
 
-This project is intentionally easy to use without a marketplace account. Download the [latest GitHub ZIP](https://github.com/mohitkale/docker-kubernetes/archive/refs/heads/main.zip), unzip it, and load the folder into Claude Code.
+This plugin is designed for direct use from GitHub - no marketplace approval, API key, or MCP configuration required. Download the release ZIP, unzip it, and point Claude Code at the extracted folder.
 
-```bash
-cd ~/Downloads
-unzip docker-kubernetes-main.zip
-claude --plugin-dir "$PWD/docker-kubernetes-main"
-```
+First, make sure Claude Code is installed and current:
 
-Claude Code can also load the ZIP directly:
+- **macOS:** `brew install --cask claude-code`, or use Anthropic's native installer.
+- **Windows PowerShell:** `winget install Anthropic.ClaudeCode`, or use Anthropic's native installer.
 
-```bash
-claude --plugin-dir ~/Downloads/docker-kubernetes-main.zip
-```
-
-If you already cloned the repository, run this from its root:
+### macOS (Terminal)
 
 ```bash
-claude --plugin-dir .
+mkdir -p "$HOME/Downloads/claude-plugins"
+cd "$HOME/Downloads/claude-plugins"
+curl -L -o docker-kubernetes-v1.1.1.zip \
+  https://github.com/mohitkale/docker-kubernetes/archive/refs/tags/v1.1.1.zip
+unzip docker-kubernetes-v1.1.1.zip
+claude --plugin-dir "$PWD/docker-kubernetes-1.1.1"
 ```
 
-The plugin is active for that Claude Code session. For a convenient repeatable launch, keep the extracted folder in a stable location and use the same `--plugin-dir` command. No API keys, MCP configuration, or project settings file are required.
+### Windows (PowerShell)
+
+```powershell
+$pluginHome = Join-Path $HOME 'Downloads\claude-plugins'
+New-Item -ItemType Directory -Force -Path $pluginHome | Out-Null
+$zipPath = Join-Path $pluginHome 'docker-kubernetes-v1.1.1.zip'
+Invoke-WebRequest `
+  -Uri 'https://github.com/mohitkale/docker-kubernetes/archive/refs/tags/v1.1.1.zip' `
+  -OutFile $zipPath
+Expand-Archive -Path $zipPath -DestinationPath $pluginHome -Force
+claude --plugin-dir (Join-Path $pluginHome 'docker-kubernetes-1.1.1')
+```
+
+The plugin is active for that Claude Code session. Keep the extracted folder in a stable location and reuse the final command whenever you want it.
+
+### Load the ZIP directly (optional)
+
+Claude Code **v2.1.128 or later** can load the ZIP without extracting it:
+
+```bash
+# macOS Terminal
+claude --plugin-dir "$HOME/Downloads/claude-plugins/docker-kubernetes-v1.1.1.zip"
+```
+
+```powershell
+# Windows PowerShell
+claude --plugin-dir (Join-Path $HOME 'Downloads\claude-plugins\docker-kubernetes-v1.1.1.zip')
+```
+
+If you cloned the repository instead, open a terminal at its root and run `claude --plugin-dir .`. Only download and load plugin code from a source you trust.
 
 ## What you can ask for
 
@@ -134,7 +161,7 @@ Use commands from inside Claude Code with the `docker-kubernetes:` prefix.
 - Session hooks only look for project markers such as Dockerfiles, Compose files, charts, and manifest folders. They do not send project data to a separate service.
 - The optional smoke test creates a temporary scratch image and temporary files, then removes them. It does not apply Kubernetes resources or install a Helm release.
 
-## Local setup
+## Optional local tools
 
 The plugin itself has no package installation step. These tools unlock the matching capabilities:
 
@@ -142,7 +169,7 @@ The plugin itself has no package installation step. These tools unlock the match
 |---|---|
 | Docker and Compose workflows | Docker Desktop or Docker Engine with `docker compose` |
 | Kubernetes workflows | `kubectl` and a valid context, such as Docker Desktop’s `docker-desktop` |
-| Helm rendering smoke checks | Helm on your PATH (`brew install helm` on macOS) |
+| Helm rendering smoke checks | Helm on your PATH (`brew install helm` on macOS; `winget install Helm.Helm` on Windows) |
 | Hooks | Node.js on your PATH |
 
 Start with:
