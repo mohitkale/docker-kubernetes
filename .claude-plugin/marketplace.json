@@ -1,0 +1,40 @@
+{
+  "name": "docker-kubernetes-marketplace",
+  "owner": {
+    "name": "Mohit Kale"
+  },
+  "metadata": {
+    "description": "Safe Docker, Kubernetes, Helm, and RBAC workflows for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "docker-kubernetes",
+      "source": "./",
+      "description": "Safe Docker, Kubernetes, Helm, and RBAC workflows from local debugging to production-ready manifests.",
+      "version": "1.1.1",
+      "author": {
+        "name": "Mohit Kale"
+      },
+      "homepage": "https://github.com/mohitkale/docker-kubernetes",
+      "repository": "https://github.com/mohitkale/docker-kubernetes.git",
+      "license": "MIT",
+      "keywords": [
+        "docker",
+        "kubernetes",
+        "k8s",
+        "helm",
+        "rbac",
+        "containers",
+        "devops"
+      ],
+      "category": "development",
+      "tags": [
+        "docker",
+        "kubernetes",
+        "helm",
+        "rbac",
+        "devops"
+      ]
+    }
+  ]
+}

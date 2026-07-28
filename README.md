@@ -27,6 +27,18 @@ First, make sure Claude Code is installed and current:
 - **macOS:** `brew install --cask claude-code`, or use Anthropic's native installer.
 - **Windows PowerShell:** `winget install Anthropic.ClaudeCode`, or use Anthropic's native installer.
 
+### Install through Claude Code
+
+For an install that Claude Code can update later, run these commands inside a Claude Code session:
+
+```text
+/plugin marketplace add mohitkale/docker-kubernetes
+/plugin install docker-kubernetes@docker-kubernetes-marketplace
+/reload-plugins
+```
+
+Choose the install scope that suits you: **user** for every local project, **project** for collaborators, or **local** for this repository only. To get a later release, run `/plugin marketplace update docker-kubernetes-marketplace`, then use `/reload-plugins`.
+
 ### macOS (Terminal)
 
 ```bash
